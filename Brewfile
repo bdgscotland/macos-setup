@@ -78,11 +78,40 @@ brew "poppler"            # PDF rendering
 brew "llmfit"             # LLM tooling
 
 # -----------------------------------------------------------------------------
-# Casks (GUI Applications)
+# Casks — Terminal & Editor
 # -----------------------------------------------------------------------------
 cask "ghostty"            # GPU-accelerated terminal emulator
+cask "zed"                # Native code editor (fast, multiplayer)
+
+# -----------------------------------------------------------------------------
+# Casks — Browser
+# -----------------------------------------------------------------------------
+cask "google-chrome"      # Primary browser
+
+# -----------------------------------------------------------------------------
+# Casks — AI Tools
+# -----------------------------------------------------------------------------
+cask "claude"             # Claude desktop app
 cask "codex"              # OpenAI Codex CLI
+cask "ollama"             # Local LLM runner
+
+# -----------------------------------------------------------------------------
+# Casks — Development
+# -----------------------------------------------------------------------------
+cask "docker"             # Docker Desktop
 cask "macfuse"            # FUSE filesystem support
+
+# -----------------------------------------------------------------------------
+# Casks — Productivity & Media
+# -----------------------------------------------------------------------------
+cask "spotify"            # Music
+cask "licecap"            # GIF screen recorder
+cask "flow"               # Pomodoro timer
+
+# -----------------------------------------------------------------------------
+# Casks — Gaming
+# -----------------------------------------------------------------------------
+cask "steam"              # Steam game client
 
 # -----------------------------------------------------------------------------
 # Fonts

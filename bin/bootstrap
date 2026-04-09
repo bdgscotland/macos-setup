@@ -70,18 +70,25 @@ if command -v chezmoi &>/dev/null; then
     info "Dotfiles applied."
 elif [ -d "$SCRIPT_DIR/home" ]; then
     warn "chezmoi not installed. Falling back to manual dotfile copy..."
-    # Simple fallback: copy files without template processing
-    # Note: .tmpl files are copied as-is (template variables won't be resolved)
+    # Only copy non-template files. Template files (.tmpl) contain {{ }}
+    # syntax that breaks tools like git if copied literally.
     for f in "$SCRIPT_DIR/home"/dot_*; do
         [ -f "$f" ] || continue
-        dest="$HOME/$(basename "$f" | sed 's/^dot_/./' | sed 's/\.tmpl$//')"
+        # Skip template files — they need chezmoi to process
+        if [[ "$f" == *.tmpl ]]; then
+            warn "Skipping $f (needs chezmoi for template processing)"
+            continue
+        fi
+        dest="$HOME/$(basename "$f" | sed 's/^dot_/./')"
         cp "$f" "$dest" 2>/dev/null || log_error "Failed to copy $f"
     done
     if [ -d "$SCRIPT_DIR/home/dot_config" ]; then
         mkdir -p "$HOME/.config"
         cp -r "$SCRIPT_DIR/home/dot_config/"* "$HOME/.config/" 2>/dev/null || log_error "Failed to copy .config"
     fi
-    info "Dotfiles copied (without template processing)."
+    warn "Template dotfiles (.zshrc, .gitconfig) were skipped — install chezmoi to apply them:"
+    warn "  brew install chezmoi && chezmoi apply --source $(pwd)/home"
+    info "Non-template dotfiles copied."
 fi
 
 # ---------------------------------------------------------------------------

@@ -13,8 +13,13 @@ echo "[dock] Configuring Dock..."
 # ---------------------------------------------------------------------------
 # Auto-hide the Dock
 defaults write com.apple.dock autohide -bool true
+# Position on left side of screen
+defaults write com.apple.dock orientation -string "left"
 # Set Dock icon size (pixels)
 defaults write com.apple.dock tilesize -int 48
+# Enable magnification on hover
+defaults write com.apple.dock magnification -bool true
+defaults write com.apple.dock largesize -int 47
 # Minimize windows using scale effect (faster than genie)
 defaults write com.apple.dock mineffect -string "scale"
 # Don't show recent applications

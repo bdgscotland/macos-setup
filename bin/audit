@@ -107,11 +107,21 @@ check_default() {
 }
 
 # Spot-check key preferences (not exhaustive, best-effort)
+# Dock
 check_default "com.apple.dock" "autohide" "1" "Dock autohide" || true
+check_default "com.apple.dock" "orientation" "left" "Dock position" || true
+check_default "com.apple.dock" "tilesize" "48" "Dock icon size" || true
+check_default "com.apple.dock" "show-recents" "0" "Dock show recents" || true
+# Finder
 check_default "com.apple.finder" "AppleShowAllFiles" "1" "Show hidden files" || true
 check_default "NSGlobalDomain" "AppleShowAllExtensions" "1" "Show file extensions" || true
 check_default "com.apple.finder" "ShowPathbar" "1" "Finder path bar" || true
+check_default "com.apple.finder" "ShowStatusBar" "1" "Finder status bar" || true
+check_default "com.apple.finder" "FXPreferredViewStyle" "Nlsv" "Finder list view" || true
+# Keyboard
 check_default "NSGlobalDomain" "KeyRepeat" "2" "Key repeat rate" || true
+check_default "NSGlobalDomain" "InitialKeyRepeat" "15" "Initial key repeat delay" || true
+# Screenshots
 check_default "com.apple.screencapture" "type" "jpg" "Screenshot format" || true
 
 if [ "$DEFAULTS_DRIFT" -eq 0 ]; then

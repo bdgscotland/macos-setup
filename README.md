@@ -5,7 +5,7 @@ One command to bootstrap a fully configured Mac for development. Opinionated, do
 ## Quickstart
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/macos-setup.git
+git clone https://github.com/bdgscotland/macos-setup.git
 cd macos-setup
 ./bootstrap.sh
 ```

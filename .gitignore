@@ -1,6 +1,9 @@
 # Capture artifacts (raw dumps, not curated)
 .capture/
 
+# Machine profiles (contain hostname, keep local)
+machines/*.toml
+
 # macOS
 .DS_Store
 
@@ -8,3 +11,4 @@
 *.swp
 *.swo
 *~
+

@@ -1,0 +1,32 @@
+# =============================================================================
+# Brewfile.extras — Optional / hobby packages
+# =============================================================================
+# Not installed by default. Run separately:
+#   brew bundle install --file=Brewfile.extras
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Retro Computing (Amiga development & emulation)
+# -----------------------------------------------------------------------------
+tap "prebuilt-amiga-dev-tools/prebuilt-amiga-dev-tools"
+
+brew "fs-uae"             # Amiga emulator
+brew "prebuilt-amiga-dev-tools/prebuilt-amiga-dev-tools/vasmm68k"  # M68K assembler
+brew "bchunk"             # CD image converter (bin/cue to iso)
+brew "lhasa"              # LHA archive extractor (Amiga standard)
+brew "unshield"           # InstallShield extractor
+brew "regina-rexx"        # REXX interpreter (Amiga scripting)
+brew "automake"           # Build tools for retro dev
+
+# Retro audio/video dependencies
+brew "sdl3_image"         # SDL3 image loading
+brew "sdl3_ttf"           # SDL3 font rendering
+brew "portmidi"           # MIDI I/O
+brew "libsamplerate"      # Audio sample rate conversion
+brew "mpg123"             # MP3 decoder
+brew "flac"               # FLAC audio codec
+
+# -----------------------------------------------------------------------------
+# Other
+# -----------------------------------------------------------------------------
+cask "factor"             # Factor programming language

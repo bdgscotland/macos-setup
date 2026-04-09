@@ -106,7 +106,6 @@ cask "macfuse"            # FUSE filesystem support
 # -----------------------------------------------------------------------------
 cask "spotify"            # Music
 cask "licecap"            # GIF screen recorder
-cask "flow"               # Pomodoro timer
 
 # -----------------------------------------------------------------------------
 # Casks — Gaming

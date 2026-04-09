@@ -64,7 +64,10 @@ eval "$(brew shellenv)"
 hash -r
 
 if command -v chezmoi &>/dev/null; then
-    if ! chezmoi apply --source "$SCRIPT_DIR/home" 2>&1 | tee -a "$LOG_FILE"; then
+    # chezmoi init copies source to ~/.local/share/chezmoi and processes
+    # the config template (.chezmoi.toml.tmpl) which prompts for name/email/etc.
+    # --apply also applies the dotfiles in the same step.
+    if ! chezmoi init --apply --source "$SCRIPT_DIR/home" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Chezmoi apply had errors. Check dotfile templates."
     fi
     info "Dotfiles applied."

@@ -23,6 +23,8 @@ defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
 chflags nohidden ~/Library 2>/dev/null || true
 # Keep folders on top when sorting by name
 defaults write com.apple.finder _FXSortFoldersFirst -bool true
+# New Finder windows open to Home folder (PfHm=Home, PfDe=Desktop, PfDo=Documents)
+defaults write com.apple.finder NewWindowTarget -string "PfHm"
 
 # Restart Finder
 killall Finder 2>/dev/null || true

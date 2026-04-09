@@ -1,0 +1,7 @@
+# chezmoi config — prompts for machine-specific values on first run
+# These values are used in dotfile templates (e.g., .gitconfig.tmpl)
+
+[data]
+    name = {{ promptString "Full name for git commits" "Duncan Bowring" | quote }}
+    email = {{ promptString "Email for git commits" "duncan@bowring.us" | quote }}
+    signingkey = {{ promptString "GPG signing key ID (leave blank to disable)" "4DB84E71511197EA" | quote }}

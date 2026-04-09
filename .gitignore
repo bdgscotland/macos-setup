@@ -1,0 +1,10 @@
+# Capture artifacts (raw dumps, not curated)
+.capture/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~

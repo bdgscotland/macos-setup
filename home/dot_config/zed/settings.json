@@ -1,0 +1,22 @@
+// Zed settings — Best Mac Setup
+//
+// VSCode keybindings, system dark/light mode, JetBrains Mono font.
+// For defaults: zed: open default settings (cmd-shift-p)
+{
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  },
+  "session": {
+    "trust_all_worktrees": true
+  },
+  "base_keymap": "VSCode",
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "buffer_font_family": "JetBrains Mono",
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark"
+  }
+}

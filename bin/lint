@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# =============================================================================
+# bin/lint — Run shellcheck on all scripts
+# =============================================================================
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+if ! command -v shellcheck &>/dev/null; then
+    echo "shellcheck not installed. Run: brew install shellcheck"
+    exit 1
+fi
+
+echo "Running shellcheck on all scripts..."
+echo ""
+
+ERRORS=0
+FILES=()
+
+# Collect all script files
+for f in "$SCRIPT_DIR"/bin/*; do
+    [ -f "$f" ] && FILES+=("$f")
+done
+for f in "$SCRIPT_DIR"/macos/*.sh; do
+    [ -f "$f" ] && FILES+=("$f")
+done
+[ -f "$SCRIPT_DIR/bootstrap.sh" ] && FILES+=("$SCRIPT_DIR/bootstrap.sh")
+
+for f in "${FILES[@]}"; do
+    name=$(basename "$f")
+    if shellcheck "$f" 2>&1; then
+        echo "  ✓ $name"
+    else
+        echo "  ✗ $name"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+echo ""
+if [ "$ERRORS" -eq 0 ]; then
+    echo "All ${#FILES[@]} scripts pass shellcheck. ✓"
+else
+    echo "$ERRORS of ${#FILES[@]} scripts have issues."
+    exit 1
+fi

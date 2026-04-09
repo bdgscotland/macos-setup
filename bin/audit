@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+# =============================================================================
+# bin/audit — Drift detection
+# =============================================================================
+# Compares live machine state against the repo spec.
+# Reports: extra packages, missing packages, dotfile drift, defaults drift.
+#
+# Writes a status summary to ~/.macos-setup/audit-status.json for the MOTD.
+# =============================================================================
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+info()    { echo -e "${GREEN}[audit]${NC} $1"; }
+warn()    { echo -e "${YELLOW}[audit]${NC} $1"; }
+error()   { echo -e "${RED}[audit]${NC} $1"; }
+section() { echo -e "\n${BLUE}── $1 ──${NC}"; }
+
+DRIFT_COUNT=0
+
+# ---------------------------------------------------------------------------
+# Prerequisites
+# ---------------------------------------------------------------------------
+if ! command -v brew &>/dev/null; then
+    error "Homebrew not installed. Run bootstrap.sh first."
+    exit 1
+fi
+
+if [ ! -f "$SCRIPT_DIR/Brewfile" ]; then
+    error "Brewfile not found. Are you running from the repo root?"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Homebrew packages
+# ---------------------------------------------------------------------------
+section "Homebrew packages"
+
+BREW_STATUS=$(brew bundle check --file="$SCRIPT_DIR/Brewfile" 2>&1 || true)
+
+if echo "$BREW_STATUS" | grep -q "satisfied"; then
+    info "All Brewfile packages installed. ✓"
+else
+    warn "Brewfile drift detected:"
+    MISSING_PKGS=$(brew bundle check --file="$SCRIPT_DIR/Brewfile" --verbose 2>&1 | grep -v "^$" || true)
+    echo "$MISSING_PKGS" | while read -r line; do echo "  $line"; done
+    MISSING_COUNT=$(echo "$MISSING_PKGS" | grep -c . || true)
+    DRIFT_COUNT=$((DRIFT_COUNT + MISSING_COUNT))
+fi
+
+# Check for extra packages (installed but not in Brewfile)
+EXTRA=$(comm -23 <(brew leaves 2>/dev/null | sort) <(grep '^brew ' "$SCRIPT_DIR/Brewfile" | sed 's/brew "//;s/".*//' | sort) 2>/dev/null || true)
+if [ -n "$EXTRA" ]; then
+    warn "Extra packages (installed but not in Brewfile):"
+    echo "$EXTRA" | while read -r pkg; do echo "  + $pkg"; done
+    EXTRA_COUNT=$(echo "$EXTRA" | grep -c . || true)
+    DRIFT_COUNT=$((DRIFT_COUNT + EXTRA_COUNT))
+else
+    info "No extra packages. ✓"
+fi
+
+# ---------------------------------------------------------------------------
+# Dotfile drift (chezmoi)
+# ---------------------------------------------------------------------------
+section "Dotfiles"
+
+if command -v chezmoi &>/dev/null && [ -d "$SCRIPT_DIR/home" ]; then
+    CHEZMOI_DIFF=$(chezmoi diff --source "$SCRIPT_DIR/home" 2>/dev/null || true)
+    if [ -z "$CHEZMOI_DIFF" ]; then
+        info "Dotfiles match repo spec. ✓"
+    else
+        warn "Dotfile drift detected:"
+        echo "$CHEZMOI_DIFF" | head -30
+        DRIFT_COUNT=$((DRIFT_COUNT + 1))
+    fi
+else
+    warn "chezmoi not available or home/ directory missing. Skipping dotfile check."
+fi
+
+# ---------------------------------------------------------------------------
+# macOS defaults (best-effort)
+# ---------------------------------------------------------------------------
+section "macOS preferences"
+
+DEFAULTS_DRIFT=0
+
+check_default() {
+    local domain="$1" key="$2" expected="$3" label="$4"
+    local actual
+    actual=$(defaults read "$domain" "$key" 2>/dev/null || echo "__UNSET__")
+    if [ "$actual" = "$expected" ]; then
+        return 0
+    else
+        warn "$label: expected=$expected actual=$actual"
+        DEFAULTS_DRIFT=$((DEFAULTS_DRIFT + 1))
+        DRIFT_COUNT=$((DRIFT_COUNT + 1))
+        return 1
+    fi
+}
+
+# Spot-check key preferences (not exhaustive, best-effort)
+check_default "com.apple.dock" "autohide" "1" "Dock autohide" || true
+check_default "com.apple.finder" "AppleShowAllFiles" "1" "Show hidden files" || true
+check_default "NSGlobalDomain" "AppleShowAllExtensions" "1" "Show file extensions" || true
+check_default "com.apple.finder" "ShowPathbar" "1" "Finder path bar" || true
+check_default "NSGlobalDomain" "KeyRepeat" "2" "Key repeat rate" || true
+check_default "com.apple.screencapture" "type" "jpg" "Screenshot format" || true
+
+if [ "$DEFAULTS_DRIFT" -eq 0 ]; then
+    info "Checked preferences match. ✓"
+else
+    warn "$DEFAULTS_DRIFT preference(s) differ from repo spec."
+    info "Note: some defaults require logout to take effect."
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+section "Audit Summary"
+
+COMMIT=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "no-commits")
+AUDIT_DATE=$(date +%Y-%m-%d)
+
+if [ "$DRIFT_COUNT" -eq 0 ]; then
+    info "$(hostname -s) matches repo spec at $COMMIT. 0 drift items. ✓"
+else
+    warn "$(hostname -s): $DRIFT_COUNT drift item(s) detected."
+    info "Run 'bin/bootstrap' to re-apply the repo spec."
+fi
+
+# Write status for MOTD
+STATUS_DIR="$HOME/.macos-setup"
+mkdir -p "$STATUS_DIR"
+cat > "$STATUS_DIR/audit-status.json" << EOF
+{
+    "hostname": "$(hostname -s)",
+    "drift_count": $DRIFT_COUNT,
+    "last_audit": "$AUDIT_DATE",
+    "commit": "$COMMIT"
+}
+EOF
+
+info "Status written to ~/.macos-setup/audit-status.json"

@@ -1,0 +1,69 @@
+# =============================================================================
+# Starship prompt configuration
+# =============================================================================
+# Cross-shell prompt. Shows git status, language versions, command duration.
+# Docs: https://starship.rs/config/
+# =============================================================================
+
+# Prompt format — clean, informative, not cluttered
+format = """
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$nodejs\
+$ruby\
+$rust\
+$golang\
+$cmd_duration\
+$line_break\
+$character"""
+
+# Show hostname (useful for multi-machine setup)
+[hostname]
+ssh_only = false
+format = "[$hostname]($style) "
+style = "bold dimmed white"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+style = "bold yellow"
+
+[python]
+format = '[${symbol}${version}]($style) '
+symbol = " "
+
+[nodejs]
+format = '[${symbol}${version}]($style) '
+symbol = " "
+
+[ruby]
+format = '[${symbol}${version}]($style) '
+symbol = " "
+
+[rust]
+format = '[${symbol}${version}]($style) '
+symbol = " "
+
+[golang]
+format = '[${symbol}${version}]($style) '
+symbol = " "
+
+# Only show command duration if it took more than 3 seconds
+[cmd_duration]
+min_time = 3_000
+format = "[took $duration]($style) "
+style = "bold yellow"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

@@ -1,0 +1,43 @@
+[user]
+    name = {{ .name }}
+    email = {{ .email }}
+{{- if .signingkey }}
+    signingkey = {{ .signingkey }}
+{{- end }}
+
+[init]
+    defaultBranch = main
+
+[core]
+    excludesfile = ~/.gitignore_global
+
+{{- if .signingkey }}
+[commit]
+    gpgsign = true
+
+[gpg]
+    program = gpg
+{{- end }}
+
+# ---------------------------------------------------------------------------
+# Aliases — conservative, widely-used, non-controversial
+# ---------------------------------------------------------------------------
+[alias]
+    st = status
+    co = checkout
+    br = branch
+    ci = commit
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    last = log -1 HEAD
+    unstage = reset HEAD --
+    amend = commit --amend --no-edit
+    diff-staged = diff --cached
+    branches = branch -a
+    tags = tag -l
+    stashes = stash list
+
+[pull]
+    rebase = false
+
+[push]
+    autoSetupRemote = true

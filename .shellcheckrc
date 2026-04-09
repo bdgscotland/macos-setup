@@ -1,0 +1,5 @@
+# Shellcheck configuration
+# Allow source statements with variable paths (common in dotfiles)
+disable=SC1091
+# Allow non-constant source (we source from dynamic paths)
+disable=SC1090

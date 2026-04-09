@@ -1,0 +1,75 @@
+# =============================================================================
+# .zshrc — Best Mac Setup
+# =============================================================================
+# Conservative shell config. No oh-my-zsh, no exotic plugins.
+# Just the essentials: PATH, language managers, completions, Starship prompt.
+# =============================================================================
+
+# Homebrew (must be first so brew-installed tools are found)
+eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+
+# PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# ---------------------------------------------------------------------------
+# Language managers
+# ---------------------------------------------------------------------------
+
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+if command -v pyenv &>/dev/null; then
+    eval "$(pyenv init -)"
+fi
+
+# rbenv
+if command -v rbenv &>/dev/null; then
+    eval "$(rbenv init - zsh)"
+fi
+
+# nvm
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+[ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"
+
+# Rust
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# ---------------------------------------------------------------------------
+# Aliases
+# ---------------------------------------------------------------------------
+alias ll="ls -lah"
+alias la="ls -la"
+alias ..="cd .."
+alias ...="cd ../.."
+
+# ---------------------------------------------------------------------------
+# MOTD — show setup status on terminal open
+# ---------------------------------------------------------------------------
+_macos_setup_motd() {
+    local status_file="$HOME/.macos-setup/audit-status.json"
+    if [ -f "$status_file" ]; then
+        local drift last_audit commit
+        drift=$(python3 -c "import json; d=json.load(open('$status_file')); print(d.get('drift_count', '?'))" 2>/dev/null || echo "?")
+        last_audit=$(python3 -c "import json; d=json.load(open('$status_file')); print(d.get('last_audit', 'never'))" 2>/dev/null || echo "never")
+        commit=$(python3 -c "import json; d=json.load(open('$status_file')); print(d.get('commit', '?'))" 2>/dev/null || echo "?")
+        if [ "$drift" = "0" ]; then
+            echo "✓ $(hostname -s) matches repo spec at ${commit}. Last audit: ${last_audit}"
+        else
+            echo "△ $(hostname -s): ${drift} drift item(s). Last audit: ${last_audit}. Run: bin/audit"
+        fi
+    fi
+}
+_macos_setup_motd
+
+# ---------------------------------------------------------------------------
+# Starship prompt (must be last)
+# ---------------------------------------------------------------------------
+if command -v starship &>/dev/null; then
+    eval "$(starship init zsh)"
+fi

@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+# =============================================================================
+# bin/bootstrap — Core Mac setup
+# =============================================================================
+# Assumes Homebrew is already installed (bootstrap.sh handles that).
+# Installs packages, applies dotfiles, configures macOS preferences.
+#
+# Error handling: fatal errors exit immediately. Non-fatal errors (single
+# package failures, individual defaults) are logged and reported at the end.
+# Re-running is always safe (idempotent).
+# =============================================================================
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ERRORS=()
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+info()    { echo -e "${GREEN}[bootstrap]${NC} $1"; }
+warn()    { echo -e "${YELLOW}[bootstrap]${NC} $1"; }
+error()   { echo -e "${RED}[bootstrap]${NC} $1"; }
+section() { echo -e "\n${BLUE}══════════════════════════════════════════${NC}"; echo -e "${BLUE} $1${NC}"; echo -e "${BLUE}══════════════════════════════════════════${NC}"; }
+
+# Log file
+LOG_DIR="$HOME/.macos-setup"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/bootstrap.log"
+echo "Bootstrap started: $(date)" > "$LOG_FILE"
+
+log_error() {
+    ERRORS+=("$1")
+    echo "[ERROR] $(date): $1" >> "$LOG_FILE"
+    warn "$1"
+}
+
+# ---------------------------------------------------------------------------
+# 1. Homebrew packages
+# ---------------------------------------------------------------------------
+section "Installing Homebrew packages"
+
+if [ -f "$SCRIPT_DIR/Brewfile" ]; then
+    # Run brew bundle in a subshell so failures don't exit the script
+    if ! brew bundle install --file="$SCRIPT_DIR/Brewfile" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Some Homebrew packages failed to install. Check log for details."
+    fi
+    info "Homebrew packages done."
+else
+    error "Brewfile not found at $SCRIPT_DIR/Brewfile"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Chezmoi dotfiles
+# ---------------------------------------------------------------------------
+section "Applying dotfiles with chezmoi"
+
+if command -v chezmoi &>/dev/null; then
+    if ! chezmoi apply --source "$SCRIPT_DIR/home" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Chezmoi apply had errors. Check dotfile templates."
+    fi
+    info "Dotfiles applied."
+elif [ -d "$SCRIPT_DIR/home" ]; then
+    warn "chezmoi not installed. Add 'brew \"chezmoi\"' to Brewfile."
+    warn "Falling back to manual dotfile copy..."
+    # Simple fallback: copy files without template processing
+    for f in "$SCRIPT_DIR/home"/dot_*; do
+        [ -f "$f" ] || continue
+        basename=$(basename "$f" | sed 's/^dot_/./')
+        cp "$f" "$HOME/$basename" 2>/dev/null || log_error "Failed to copy $f"
+    done
+    if [ -d "$SCRIPT_DIR/home/dot_config" ]; then
+        cp -r "$SCRIPT_DIR/home/dot_config/"* "$HOME/.config/" 2>/dev/null || log_error "Failed to copy .config"
+    fi
+    info "Dotfiles copied (without template processing)."
+fi
+
+# ---------------------------------------------------------------------------
+# 3. macOS preferences
+# ---------------------------------------------------------------------------
+section "Configuring macOS preferences"
+
+for script in "$SCRIPT_DIR"/macos/*.sh; do
+    [ -f "$script" ] || continue
+    name=$(basename "$script")
+    info "Running $name..."
+    if ! bash "$script" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "macOS script $name had errors."
+    fi
+done
+
+info "macOS preferences applied."
+
+# ---------------------------------------------------------------------------
+# 4. Language runtimes
+# ---------------------------------------------------------------------------
+section "Setting up language runtimes"
+
+# Python via pyenv
+if command -v pyenv &>/dev/null; then
+    LATEST_PYTHON=$(pyenv install --list 2>/dev/null | grep -E '^\s+3\.[0-9]+\.[0-9]+$' | tail -1 | tr -d ' ')
+    if [ -n "$LATEST_PYTHON" ]; then
+        if ! pyenv versions | grep -q "$LATEST_PYTHON"; then
+            info "Installing Python $LATEST_PYTHON via pyenv..."
+            pyenv install "$LATEST_PYTHON" 2>&1 | tee -a "$LOG_FILE" || log_error "Failed to install Python $LATEST_PYTHON"
+            pyenv global "$LATEST_PYTHON" 2>/dev/null || true
+        else
+            info "Python $LATEST_PYTHON already installed."
+        fi
+    fi
+else
+    warn "pyenv not found. Skipping Python setup."
+fi
+
+# Ruby via rbenv
+if command -v rbenv &>/dev/null; then
+    LATEST_RUBY=$(rbenv install --list 2>/dev/null | grep -E '^\s*[0-9]+\.[0-9]+\.[0-9]+$' | tail -1 | tr -d ' ')
+    if [ -n "$LATEST_RUBY" ]; then
+        if ! rbenv versions | grep -q "$LATEST_RUBY"; then
+            info "Installing Ruby $LATEST_RUBY via rbenv..."
+            rbenv install "$LATEST_RUBY" 2>&1 | tee -a "$LOG_FILE" || log_error "Failed to install Ruby $LATEST_RUBY"
+            rbenv global "$LATEST_RUBY" 2>/dev/null || true
+        else
+            info "Ruby $LATEST_RUBY already installed."
+        fi
+    fi
+else
+    warn "rbenv not found. Skipping Ruby setup."
+fi
+
+# Rust via rustup (if not already installed)
+if ! command -v rustc &>/dev/null; then
+    info "Installing Rust via rustup..."
+    RUSTUP_INSTALLER=$(mktemp)
+    curl -fsSL https://sh.rustup.rs -o "$RUSTUP_INSTALLER"
+    sh "$RUSTUP_INSTALLER" -y --no-modify-path 2>&1 | tee -a "$LOG_FILE" || log_error "Rust installation failed"
+    rm -f "$RUSTUP_INSTALLER"
+else
+    info "Rust already installed: $(rustc --version)"
+fi
+
+info "Language runtimes done."
+
+# ---------------------------------------------------------------------------
+# 5. Touch ID for sudo (opt-in)
+# ---------------------------------------------------------------------------
+section "Touch ID for sudo"
+
+PAMSUDO="/etc/pam.d/sudo_local"
+if [ -f /usr/lib/pam/pam_tid.so.2 ] || [ -f /usr/lib/pam/pam_tid.so ]; then
+    if [ -f "$PAMSUDO" ] && grep -q "pam_tid" "$PAMSUDO" 2>/dev/null; then
+        info "Touch ID for sudo already configured."
+    else
+        echo ""
+        echo -e "${YELLOW}Touch ID for sudo lets you use your fingerprint instead of"
+        echo -e "typing your password for sudo commands.${NC}"
+        echo ""
+        read -r -p "Enable Touch ID for sudo? [y/N] " response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            info "Enabling Touch ID for sudo..."
+            # macOS Sonoma+ uses /etc/pam.d/sudo_local (survives OS updates)
+            if ! sudo bash -c 'echo "auth       sufficient     pam_tid.so" > /etc/pam.d/sudo_local' 2>&1; then
+                log_error "Failed to enable Touch ID for sudo."
+            else
+                info "Touch ID for sudo enabled."
+                info "To undo: sudo rm /etc/pam.d/sudo_local"
+            fi
+        else
+            info "Skipping Touch ID for sudo."
+        fi
+    fi
+else
+    warn "Touch ID PAM module not found. Skipping."
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Create Screenshots directory
+# ---------------------------------------------------------------------------
+mkdir -p "$HOME/Screenshots"
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+section "Bootstrap Complete"
+
+echo "Bootstrap finished: $(date)" >> "$LOG_FILE"
+
+if [ ${#ERRORS[@]} -eq 0 ]; then
+    info "All steps completed successfully!"
+else
+    warn "${#ERRORS[@]} issue(s) encountered:"
+    for err in "${ERRORS[@]}"; do
+        echo -e "  ${RED}•${NC} $err"
+    done
+    echo ""
+    info "Full log: $LOG_FILE"
+    info "Re-run bin/bootstrap to retry failed steps."
+fi
+
+echo ""
+info "Next steps:"
+info "  1. Restart your terminal to pick up new shell config"
+info "  2. Run 'bin/audit' to verify your setup matches the repo"
+info "  3. Log out and back in for macOS preference changes to take full effect"

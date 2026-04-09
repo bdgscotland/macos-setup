@@ -93,12 +93,12 @@ cask "google-chrome"      # Primary browser
 # -----------------------------------------------------------------------------
 cask "claude"             # Claude desktop app
 cask "codex"              # OpenAI Codex CLI
-cask "ollama"             # Local LLM runner
+cask "ollama-app"         # Local LLM runner
 
 # -----------------------------------------------------------------------------
 # Casks — Development
 # -----------------------------------------------------------------------------
-cask "docker"             # Docker Desktop
+cask "docker-desktop"     # Docker Desktop
 cask "macfuse"            # FUSE filesystem support
 
 # -----------------------------------------------------------------------------

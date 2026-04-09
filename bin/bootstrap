@@ -105,6 +105,10 @@ info "macOS preferences applied."
 # ---------------------------------------------------------------------------
 section "Setting up language runtimes"
 
+# Refresh PATH again (pyenv/rbenv were just installed by brew bundle)
+eval "$(brew shellenv)"
+hash -r
+
 # Python via pyenv
 if command -v pyenv &>/dev/null; then
     LATEST_PYTHON=$(pyenv install --list 2>/dev/null | grep -E '^\s+3\.[0-9]+\.[0-9]+$' | tail -1 | tr -d ' ')

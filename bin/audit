@@ -22,7 +22,8 @@ warn()    { echo -e "${YELLOW}[audit]${NC} $1"; }
 error()   { echo -e "${RED}[audit]${NC} $1"; }
 section() { echo -e "\n${BLUE}── $1 ──${NC}"; }
 
-DRIFT_COUNT=0
+DRIFT_COUNT=0     # Things bootstrap can fix (missing packages, wrong defaults)
+EXTRA_COUNT=0     # Things installed but not tracked (informational only)
 
 # ---------------------------------------------------------------------------
 # Prerequisites
@@ -55,14 +56,15 @@ else
 fi
 
 # Check for extra packages (installed but not in Brewfile)
+# These are informational only — bootstrap won't remove them
 EXTRA=$(comm -23 <(brew leaves 2>/dev/null | sort) <(grep '^brew ' "$SCRIPT_DIR/Brewfile" | sed 's/brew "//;s/".*//' | sort) 2>/dev/null || true)
 if [ -n "$EXTRA" ]; then
-    warn "Extra packages (installed but not in Brewfile):"
+    info "Untracked packages (installed but not in Brewfile):"
     echo "$EXTRA" | while read -r pkg; do echo "  + $pkg"; done
     EXTRA_COUNT=$(echo "$EXTRA" | grep -c . || true)
-    DRIFT_COUNT=$((DRIFT_COUNT + EXTRA_COUNT))
+    info "($EXTRA_COUNT untracked — add to Brewfile or Brewfile.extras to track them)"
 else
-    info "No extra packages. ✓"
+    info "No untracked packages. ✓"
 fi
 
 # ---------------------------------------------------------------------------
@@ -130,8 +132,12 @@ AUDIT_DATE=$(date +%Y-%m-%d)
 if [ "$DRIFT_COUNT" -eq 0 ]; then
     info "$(hostname -s) matches repo spec at $COMMIT. 0 drift items. ✓"
 else
-    warn "$(hostname -s): $DRIFT_COUNT drift item(s) detected."
-    info "Run 'bin/bootstrap' to re-apply the repo spec."
+    warn "$(hostname -s): $DRIFT_COUNT fixable drift item(s)."
+    info "Run 'bin/bootstrap' to fix."
+fi
+
+if [ "$EXTRA_COUNT" -gt 0 ]; then
+    info "$EXTRA_COUNT untracked package(s) (not a problem, just not in Brewfile)."
 fi
 
 # Write status for MOTD
